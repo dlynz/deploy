@@ -10,12 +10,12 @@ import Image from "next/image"
 
 const projects = [
   {
-    title: "Grovify",
+    title: "Groveify",
     description:
       "A full-stack web application utilizing generative AI to create assets for a productivity tracker with an isometric map that grows as tasks are completed based on a real-time economy.",
     image: "/groveify.png",
     tags: ["React", "Vite", "TypeScript", "Express.js", "TailwindCSS", "Dall-E"],
-    link: "https://grovify.com",
+    link: "https://groveify.com",
     github: "https://github.com/devsoc-unsw/trainee-earth-24t1",
     featured: true,
   },
@@ -34,7 +34,7 @@ const projects = [
     description:
       "TasteBuds is a restaurant recommendation app for indecisive groups. Inspired by the fast-paced, interactive style of Kahoot, TasteBuds lets groups quickly decide where to eat by hosting a fun voting session. Each lobby gathers users who then vote on their favorite restaurant option, and the winning choice is displayed in real time!",
     image: "/notangles.png",
-    tags: ["Next.js", "Shadcn", "Git", "Socket.io", "Express"],
+    tags: ["Next.js", "Shadcn", "Git", "Socket.io", "TailwindCSS"],
     link: "https://taste-buds-matcher.onrender.com/",
     github: "https://github.com/kevinh-e/tastebuds",
     featured: false,
