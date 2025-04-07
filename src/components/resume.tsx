@@ -163,9 +163,9 @@ export default function Resume() {
                     UNSW students each term
                   </li>
                   <li>Revamped certain UI elements and created a new landing page</li>
-                  <li>Worked on implementing a collaborative "friends" feature for easy cooperative timetabling</li>
+                  <li>Worked on implementing a collaborative &quot;friends&quot; feature for easy cooperative timetabling</li>
                   <li>
-                    Automatically updates the scraping on each term's courses by scraping the information from UNSW's
+                    Automatically updates the scraping on each term&apos;s courses by scraping the information from UNSW&apos;s
                     timetable website using a library called Puppeteer
                   </li>
                   <li>Collaborated with UNSW students through feedback to provide the best user experience possible</li>
