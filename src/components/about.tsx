@@ -4,6 +4,7 @@ import { motion } from "framer-motion"
 import { useInView } from "react-intersection-observer"
 import Image from "next/image"
 import { Mail, Phone, Github, Linkedin } from "lucide-react"
+import pfp from '../../public/pfp.jpg'
 
 export default function About() {
   const [ref, inView] = useInView({
@@ -28,7 +29,7 @@ export default function About() {
             <div className="absolute inset-0 rounded-full bg-gradient-to-r from-purple-400 via-pink-500 to-indigo-500 animate-gradient opacity-70 blur-xl"></div>
             <div className="relative h-full w-full rounded-full overflow-hidden border-4 border-white/20">
               <Image
-                src="/placeholder.svg?height=400&width=400"
+                src={pfp}
                 alt="Dylan Zhang"
                 width={400}
                 height={400}

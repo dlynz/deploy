@@ -36,15 +36,6 @@ export default function Footer() {
               <span className="sr-only">LinkedIn</span>
             </Link>
             <Link
-              href="#"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rounded-full p-2 transition-colors hover:bg-white/10 hover:text-violet-400"
-            >
-              <Twitter className="h-5 w-5" />
-              <span className="sr-only">Twitter</span>
-            </Link>
-            <Link
               href="mailto:dylan.zhang15@gmail.com"
               className="rounded-full p-2 transition-colors hover:bg-white/10 hover:text-violet-400"
             >
