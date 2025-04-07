@@ -39,7 +39,7 @@ export default function Hero() {
         </h1>
 
         <p className="mx-auto max-w-2xl text-xl text-muted-foreground">
-          Computer Science student at UNSW, crafting digital experiences with modern web technologies
+          Computer Science student at UNSW, interested in creating unique digital experiences with modern web technologies
         </p>
 
         <div className="flex flex-wrap justify-center gap-4">

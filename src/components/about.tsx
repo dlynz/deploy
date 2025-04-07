@@ -39,7 +39,7 @@ export default function About() {
           </div>
           <div className="space-y-4">
             <p className="text-lg">
-              I&apos;m a Computer Science student at the University of New South Wales (Feb. 2023 – Oct. 2025), passionate
+              I&apos;m a Computer Science student at the University of New South Wales (Feb. 2023 – present), passionate
               about creating innovative web applications and solving complex problems.
             </p>
             <p className="text-lg">

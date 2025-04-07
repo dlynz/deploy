@@ -30,6 +30,16 @@ const projects = [
     featured: true,
   },
   {
+    title: "taste-buds",
+    description:
+      "TasteBuds is a restaurant recommendation app for indecisive groups. Inspired by the fast-paced, interactive style of Kahoot, TasteBuds lets groups quickly decide where to eat by hosting a fun voting session. Each lobby gathers users who then vote on their favorite restaurant option, and the winning choice is displayed in real time!",
+    image: "/notangles.png",
+    tags: ["Next.js", "Shadcn", "Git", "Socket.io", "Express"],
+    link: "https://taste-buds-matcher.onrender.com/",
+    github: "https://github.com/kevinh-e/tastebuds",
+    featured: false,
+  },
+  {
     title: "Portfolio Website",
     description:
       "The current website that you are seeing :).",
