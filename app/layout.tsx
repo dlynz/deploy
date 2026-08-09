@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Dylan Zhang | AI Product Engineer",
+  title: "dlyn.dev | portfolio",
   description:
     "Portfolio for Dylan Zhang, a UNSW computer science student and software engineer building AI platforms, realtime tools, and playful product systems.",
   icons: {
