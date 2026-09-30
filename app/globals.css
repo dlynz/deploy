@@ -297,6 +297,32 @@ button {
   width: min(100%, 59rem);
 }
 
+.hero-content > .eyebrow,
+.hero-content > h1,
+.hero-content > .hero-copy,
+.hero-content > .hero-links,
+.hero-content > .hero-brand-slot {
+  position: relative;
+  z-index: 1;
+  color: #fff;
+  mix-blend-mode: difference;
+  text-shadow: none;
+}
+
+.hero-content > .hero-links a {
+  text-decoration-color: rgba(255, 255, 255, 0.6);
+}
+
+.hero-content > .hero-brand-slot span,
+.hero-content > .hero-brand-slot i {
+  color: #fff;
+}
+
+.hero-content > .hero-brand-slot i {
+  background: currentColor;
+  box-shadow: none;
+}
+
 .eyebrow {
   margin: 0 0 1rem;
   color: var(--amber);
