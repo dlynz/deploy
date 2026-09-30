@@ -16,8 +16,17 @@ type Project = {
 
 const projects: Project[] = [
   {
+    name: "Corporate Culture Monitor",
+    type: "Employee analytics platform",
+    year: "2026",
+    summary: "Analysed thousands of employee reviews across corporate culture dimensions.",
+    impact: "NLP pipeline, sentiment analysis, theme classification, Rio Tinto capstone.",
+    tags: ["AI", "Data", "Next.js", "FastAPI"],
+    link: "http://34-40-199-30.sslip.io",
+  },
+  {
     name: "Groveify",
-    type: "AI productivity game",
+    type: "AI productivity tab page",
     year: "2024",
     summary: "Generated isometric map assets from completed tasks.",
     impact: "DALL-E pipeline, draggable widgets, canvas performance.",
@@ -127,6 +136,18 @@ const resumeExperience = [
 ];
 
 const resumeProjects = [
+  {
+    title: "Corporate Culture Monitor",
+    subtitle: "Employee Analytics Platform",
+    link: "34-40-199-30.sslip.io",
+    date: "Jun. 2026 - Aug. 2026",
+    bullets: [
+      "Built a full-stack analytics platform that transformed 4,000+ employee reviews into actionable insights across 11 corporate culture dimensions as part of the capstone COMP3900 course in collaboration with Rio Tinto.",
+      "Selected as one of 4 COMP3900 projects to be showcased at UNSW Open Day in 26T2.",
+      "Engineered an NLP pipeline combining sentence embeddings, sentiment analysis, and hierarchical theme classification to automatically analyse and categorise employee feedback.",
+    ],
+    technologies: "Next.js, TypeScript, FastAPI, PostgreSQL, Docker, Gemini API, VADER",
+  },
   {
     title: "Groveify",
     subtitle: "2D Gamified AI Productivity Dashboard",
