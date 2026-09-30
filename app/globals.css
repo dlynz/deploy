@@ -97,11 +97,13 @@ button {
 
 .hero-visual {
   position: absolute;
-  inset: 1rem 0 auto -5vw;
+  top: 40%;
+  left: clamp(-10rem, -9vw, -4rem);
   z-index: -1;
-  height: min(82vw, 53rem);
-  width: min(82vw, 53rem);
+  height: clamp(34rem, 58vw, 53rem);
+  width: clamp(34rem, 58vw, 53rem);
   opacity: 0.95;
+  transform: translateY(-50%);
 }
 
 .hero-visual img {
@@ -290,6 +292,8 @@ button {
 }
 
 .hero-content {
+  position: relative;
+  isolation: isolate;
   width: min(100%, 59rem);
 }
 

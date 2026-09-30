@@ -317,11 +317,6 @@ export default function Home() {
         <i aria-hidden="true" />
       </a>
       <section className="hero-section" id="home" ref={heroSectionRef} aria-labelledby="hero-title">
-        <div className="hero-visual">
-          <Image src="/hero-prism-loop.webp" alt="" fill priority sizes="min(82vw, 53rem)" />
-          <div className="spectral-ring" aria-hidden="true" />
-        </div>
-
         <nav
           className={`site-nav ${navItemsVisible ? "show-links" : ""}`}
           aria-label="Primary navigation"
@@ -350,6 +345,10 @@ export default function Home() {
 
         <div className="hero-layout">
           <div className="hero-content">
+            <div className="hero-visual">
+              <Image src="/hero-prism-loop.webp" alt="" fill priority sizes="min(82vw, 53rem)" />
+              <div className="spectral-ring" aria-hidden="true" />
+            </div>
             <p className="eyebrow">Dylan Zhang</p>
             <h1 id="hero-title">Software engineer.</h1>
             <p className="hero-copy">Interactive experiences, data interfaces, realtime apps.</p>
