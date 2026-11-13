@@ -1,8 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, MouseEvent } from "react";
+import { useScrollBuild } from "./use-scroll-build";
+import { useHeroEntrance } from "./use-hero-entrance";
+import { AuthoredSection, WrittenText } from "./authored-section";
 
 type Project = {
   name: string;
@@ -198,6 +201,8 @@ const skillRows = [
 ];
 
 export default function Home() {
+  const [motionEnabled, setMotionEnabled] = useState(true);
+  const [motionPreferenceLoaded, setMotionPreferenceLoaded] = useState(false);
   const [activeFilter, setActiveFilter] = useState<(typeof filters)[number]>("All");
   const [activeProject, setActiveProject] = useState(projects[0]);
   const [activeSection, setActiveSection] = useState("home");
@@ -208,6 +213,30 @@ export default function Home() {
   const heroBrandRef = useRef<HTMLSpanElement>(null);
   const handoffLogoRef = useRef<HTMLAnchorElement>(null);
   const navItemsVisibleRef = useRef(false);
+
+  useLayoutEffect(() => {
+    try {
+      const saved = window.localStorage.getItem("dlyn-motion-enabled");
+      // Apply the saved choice before the first paint or entrance animation.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (saved !== null) setMotionEnabled(saved === "true");
+    } catch {
+      // Keep the default preference when browser storage is unavailable.
+    }
+    setMotionPreferenceLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (!motionPreferenceLoaded) return;
+    try {
+      window.localStorage.setItem("dlyn-motion-enabled", String(motionEnabled));
+    } catch {
+      // The toggle remains usable for this visit when storage is unavailable.
+    }
+  }, [motionEnabled, motionPreferenceLoaded]);
+
+  useHeroEntrance(heroSectionRef, motionEnabled && motionPreferenceLoaded);
+  useScrollBuild(shellRef, motionEnabled && motionPreferenceLoaded, `${activeFilter}:${activeProject.name}`);
 
   const visibleProjects = useMemo(() => {
     if (activeFilter === "All") {
@@ -230,7 +259,10 @@ export default function Home() {
       target === "home" ? 0 : (element?.getBoundingClientRect().top ?? 0) + window.scrollY;
     const endTop = Math.max(nextTop, 0);
 
-    window.scrollTo({ top: endTop, behavior: "smooth" });
+    window.scrollTo({
+      top: endTop,
+      behavior: motionEnabled ? "smooth" : "instant",
+    });
 
     window.history.replaceState(null, "", target === "home" ? window.location.pathname : `#${target}`);
     setActiveSection(target);
@@ -242,51 +274,78 @@ export default function Home() {
   }
 
   useEffect(() => {
+    const shell = shellRef.current;
+    const nav = shell?.querySelector<HTMLElement>(".site-nav");
+    const pageNav = shell?.querySelector<HTMLElement>(".page-nav");
     let animationFrame = 0;
+    let disposed = false;
+    let navRect: DOMRect | undefined;
+    let heroLeft = 0;
+    let heroTop = 0;
+    let heroHeight = 0;
+    let lastReveal = -1;
+    let lastTransform = "";
 
     function updateNavState() {
-      window.cancelAnimationFrame(animationFrame);
+      if (animationFrame) return;
       animationFrame = window.requestAnimationFrame(() => {
-        const shell = shellRef.current;
+        animationFrame = 0;
         const handoffLogo = handoffLogoRef.current;
-        const progress = Math.min(window.scrollY / 120, 1);
-        const navLogoRect = navLogoRef.current?.getBoundingClientRect();
-        const heroBrandRect = heroBrandRef.current?.getBoundingClientRect();
+        if (!navRect || !handoffLogo) return;
+        const top = heroTop - window.scrollY;
+        const travel = navRect.height + heroHeight;
+        const handoff = Math.min(Math.max((navRect.bottom - top) / travel, 0), 1);
+        const eased = handoff * handoff * (3 - 2 * handoff);
+        const left = heroLeft + (navRect.left - heroLeft) * eased;
+        const logoTop = top + (navRect.top - top) * eased;
+        const reveal = Math.min(Math.max((handoff - 0.35) / 0.65, 0), 1);
+        const transform = `translate3d(${left}px, ${logoTop}px, 0)`;
 
-        let reveal = 0;
-
-        if (navLogoRect && heroBrandRect && handoffLogo) {
-          const travel = navLogoRect.height + heroBrandRect.height;
-          const rawHandoff = (navLogoRect.bottom - heroBrandRect.top) / travel;
-          const handoff = Math.min(Math.max(rawHandoff, 0), 1);
-          const easedHandoff = handoff * handoff * (3 - 2 * handoff);
-          const logoLeft = heroBrandRect.left + (navLogoRect.left - heroBrandRect.left) * easedHandoff;
-          const logoTop = heroBrandRect.top + (navLogoRect.top - heroBrandRect.top) * easedHandoff;
-
-          reveal = Math.min(Math.max((handoff - 0.35) / 0.65, 0), 1);
+        if (transform !== lastTransform) {
           handoffLogo.style.opacity = "1";
-          handoffLogo.style.transform = `translate3d(${logoLeft}px, ${logoTop}px, 0)`;
+          handoffLogo.style.transform = transform;
+          lastTransform = transform;
         }
-
-        shell?.style.setProperty("--nav-progress", String(progress));
-        shell?.style.setProperty("--nav-reveal", String(reveal));
-        shell?.style.setProperty("--hero-nav-handoff", String(Math.max(1 - reveal * 1.65, 0)));
-
-        const nextNavItemsVisible = reveal > 0.08;
-        if (navItemsVisibleRef.current !== nextNavItemsVisible) {
-          navItemsVisibleRef.current = nextNavItemsVisible;
-          setNavItemsVisible(nextNavItemsVisible);
+        // Scope changing values to navigation, not thousands of typed glyphs.
+        if (reveal !== lastReveal) {
+          nav?.style.setProperty("--nav-reveal", String(reveal));
+          pageNav?.style.setProperty("--hero-nav-handoff", String(Math.max(1 - reveal * 1.65, 0)));
+          lastReveal = reveal;
+        }
+        const visible = reveal > 0.08;
+        if (navItemsVisibleRef.current !== visible) {
+          navItemsVisibleRef.current = visible;
+          setNavItemsVisible(visible);
         }
       });
     }
 
-    updateNavState();
+    // The logo's anchors only change with layout, not with scroll. Preserve its
+    // exact handoff curve without forcing layout on every animation frame.
+    function measureLogo() {
+      navRect = navLogoRef.current?.getBoundingClientRect();
+      const heroRect = heroBrandRef.current?.getBoundingClientRect();
+      if (heroRect) {
+        heroLeft = heroRect.left;
+        heroTop = heroRect.top + window.scrollY;
+        heroHeight = heroRect.height;
+      }
+      updateNavState();
+    }
+
+    measureLogo();
+    const resize = new ResizeObserver(measureLogo);
+    if (heroSectionRef.current) resize.observe(heroSectionRef.current);
+    if (navLogoRef.current) resize.observe(navLogoRef.current);
+    document.fonts.ready.then(() => { if (!disposed) measureLogo(); });
     window.addEventListener("scroll", updateNavState, { passive: true });
-    window.addEventListener("resize", updateNavState);
+    window.addEventListener("resize", measureLogo);
     return () => {
+      disposed = true;
+      resize.disconnect();
       window.cancelAnimationFrame(animationFrame);
       window.removeEventListener("scroll", updateNavState);
-      window.removeEventListener("resize", updateNavState);
+      window.removeEventListener("resize", measureLogo);
     };
   }, []);
 
@@ -326,6 +385,19 @@ export default function Home() {
 
   return (
     <main className="portfolio-shell" ref={shellRef}>
+      <button
+        className={`motion-toggle ${motionPreferenceLoaded ? "" : "is-loading"}`}
+        type="button"
+        aria-label={motionPreferenceLoaded ? "Scroll animation" : "Loading motion preference"}
+        aria-pressed={motionEnabled}
+        aria-busy={!motionPreferenceLoaded}
+        disabled={!motionPreferenceLoaded}
+        onClick={() => setMotionEnabled((enabled) => !enabled)}
+      >
+        <span aria-hidden="true" />
+        {motionPreferenceLoaded ? `Motion ${motionEnabled ? "on" : "off"}` : "Loading"}
+      </button>
+      <div className="design-cursors" aria-hidden="true" />
       <div className="grain" />
       <a
         className="handoff-logo"
@@ -338,6 +410,7 @@ export default function Home() {
         <i aria-hidden="true" />
       </a>
       <section className="hero-section" id="home" ref={heroSectionRef} aria-labelledby="hero-title">
+        <div className="hero-authoring" aria-hidden="true" />
         <nav
           className={`site-nav ${navItemsVisible ? "show-links" : ""}`}
           aria-label="Primary navigation"
@@ -358,7 +431,7 @@ export default function Home() {
                 aria-current={activeSection === item.target ? "page" : undefined}
                 onClick={(event) => scrollToSection(event, item.target)}
               >
-                {item.label}
+                <WrittenText text={item.label} />
               </a>
             ))}
           </div>
@@ -370,20 +443,20 @@ export default function Home() {
               <Image src="/hero-prism-loop.webp" alt="" fill priority sizes="min(82vw, 53rem)" />
               <div className="spectral-ring" aria-hidden="true" />
             </div>
-            <p className="eyebrow">Dylan Zhang</p>
-            <h1 id="hero-title">Software engineer.</h1>
-            <p className="hero-copy">Interactive experiences, data interfaces, realtime apps.</p>
+            <p className="eyebrow"><WrittenText text="Dylan Zhang" /></p>
+            <h1 id="hero-title"><WrittenText text="Software engineer." /></h1>
+            <p className="hero-copy"><WrittenText text="Interactive experiences, data interfaces, realtime apps." /></p>
             <div className="hero-links" aria-label="Contact links">
-              <a href="mailto:dylan.zhang15@gmail.com">dylan.zhang15@gmail.com</a>
+              <a href="mailto:dylan.zhang15@gmail.com"><WrittenText text="dylan.zhang15@gmail.com" /></a>
               <a href="https://github.com/dlynz" target="_blank" rel="noreferrer">
-                github.com/dlynz
+                <WrittenText text="github.com/dlynz" />
               </a>
               <a
                 href="https://linkedin.com/in/dylan-zhang-18a990262"
                 target="_blank"
                 rel="noreferrer"
               >
-                linkedin.com/in/dylan-zhang-18a990262
+                <WrittenText text="linkedin.com/in/dylan-zhang-18a990262" />
               </a>
             </div>
             <span
@@ -399,10 +472,10 @@ export default function Home() {
             className={`page-nav ${navItemsVisible ? "is-docked" : ""}`}
             aria-label="Page navigation"
           >
-            <span>Index</span>
+            <span><WrittenText text="Index" /></span>
             {navItems.map((item) => (
               <a key={item.target} href={item.href} onClick={(event) => scrollToSection(event, item.target)}>
-                {item.label}
+                <WrittenText text={item.label} />
               </a>
             ))}
           </div>
@@ -410,7 +483,7 @@ export default function Home() {
 
       </section>
 
-      <section className="work-section" id="work" aria-labelledby="work-title">
+      <AuthoredSection className="work-section" id="work" aria-labelledby="work-title">
         <div className="section-heading">
           <p className="eyebrow">Selected work</p>
           <h2 id="work-title">Projects.</h2>
@@ -473,9 +546,9 @@ export default function Home() {
             ) : null}
           </article>
         </div>
-      </section>
+      </AuthoredSection>
 
-      <section className="experience-section" id="experience" aria-labelledby="experience-title">
+      <AuthoredSection className="experience-section" id="experience" aria-labelledby="experience-title">
         <div className="section-heading">
           <p className="eyebrow">Where I&apos;ve worked</p>
           <h2 id="experience-title">Experience.</h2>
@@ -491,9 +564,9 @@ export default function Home() {
             </article>
           ))}
         </div>
-      </section>
+      </AuthoredSection>
 
-      <section className="skills-section" aria-labelledby="skills-title">
+      <AuthoredSection className="skills-section" aria-labelledby="skills-title">
         <div className="section-heading">
           <p className="eyebrow">Skill spectrum</p>
           <h2 id="skills-title">Technologies.</h2>
@@ -510,9 +583,9 @@ export default function Home() {
             </article>
           ))}
         </div>
-      </section>
+      </AuthoredSection>
 
-      <section className="resume-section" id="resume" aria-labelledby="resume-title">
+      <AuthoredSection className="resume-section" id="resume" aria-labelledby="resume-title">
         <div className="section-heading">
           <p className="eyebrow">Full resume</p>
           <h2 id="resume-title">Background.</h2>
@@ -619,7 +692,7 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </section>
+      </AuthoredSection>
 
     </main>
   );
