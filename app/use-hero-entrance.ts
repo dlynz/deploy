@@ -1,6 +1,8 @@
 "use client";
 
-import { useLayoutEffect, type RefObject } from "react";
+import { useLayoutEffect, useRef, type RefObject } from "react";
+
+import { getCursorName } from "./cursor-names";
 
 const clamp = (value: number) => Math.min(1, Math.max(0, value));
 const tracks = [
@@ -8,19 +10,26 @@ const tracks = [
   { selector: "h1", delay: 100, duration: 2400, cursor: true },
   { selector: ".hero-copy", delay: 850, duration: 1700, cursor: true },
   { selector: ".hero-links", delay: 1200, duration: 1700, cursor: true },
+  { selector: ".hero-motion-picker", delay: 1050, duration: 1800, cursor: true },
   { selector: ".page-nav > span", delay: 800, duration: 2000, cursor: true },
   { selector: ".page-nav > a", delay: 1000, duration: 1850, cursor: true },
 ];
 
-export function useHeroEntrance(root: RefObject<HTMLElement | null>, enabled: boolean) {
+export function useHeroEntrance(root: RefObject<HTMLElement | null>, enabled: boolean, ready = true) {
+  const played = useRef(false);
   useLayoutEffect(() => {
     const hero = root.current;
-    if (!hero || !enabled || window.scrollY > 64 || window.location.hash) return;
+    if (!hero || !ready || played.current) return;
+    if (!enabled || window.scrollY > 64 || window.location.hash) {
+      const decision = window.requestAnimationFrame(() => { played.current = true; });
+      return () => window.cancelAnimationFrame(decision);
+    }
     const layer = hero.querySelector<HTMLElement>(".hero-authoring");
     if (!layer) return;
     const items = tracks.flatMap((track, index) => {
       const elements = hero.querySelectorAll<HTMLElement>(track.selector);
       return Array.from(elements).flatMap((element, itemIndex) => {
+        if (!element.getClientRects().length) return [];
         let total = 0;
         const texts = Array.from(element.querySelectorAll<HTMLElement>(".written-text")).map((text) => {
           const glyphs = Array.from(text.querySelectorAll<HTMLElement>(".written-letter"));
@@ -33,15 +42,14 @@ export function useHeroEntrance(root: RefObject<HTMLElement | null>, enabled: bo
         if (cursor) {
           const cursorColors = ["var(--rose)", "var(--cyan)", "var(--mint)"];
           cursor.className = "design-cursor";
-          cursor.dataset.tool = "Frame";
           const indexCursor = track.selector.startsWith(".page-nav");
           const color = track.selector === ".page-nav > span"
             ? "var(--violet)"
             : cursorColors[itemIndex % cursorColors.length];
-          cursor.style.setProperty(
-            "--cursor-color",
-            indexCursor ? color : index === 2 ? "var(--cyan)" : "var(--violet)",
-          );
+          const cursorColor = track.selector === ".hero-motion-picker" ? "var(--mint)"
+            : indexCursor ? color : index === 2 ? "var(--cyan)" : "var(--violet)";
+          cursor.style.setProperty("--cursor-color", cursorColor);
+          cursor.dataset.name = getCursorName(cursorColor);
           cursor.innerHTML = '<svg width="18" height="23" viewBox="0 0 22 27" fill="none"><path d="M4.2 3.2C3.4 2.6 2.4 3.3 2.6 4.3L6.5 22.3C6.7 23.3 8 23.5 8.5 22.6L12 16.4L19 15.6C20 15.5 20.3 14.3 19.5 13.7L4.2 3.2Z" fill="currentColor" stroke="white" stroke-width="1.5" stroke-linejoin="round" /></svg>';
           layer.appendChild(cursor);
         }
@@ -66,6 +74,7 @@ export function useHeroEntrance(root: RefObject<HTMLElement | null>, enabled: bo
 
     function update(time: number) {
       if (done) return;
+      played.current = true;
       start ??= time;
       const elapsed = time - start;
       const dt = Math.min(48, last ? time - last : 16);
@@ -120,7 +129,6 @@ export function useHeroEntrance(root: RefObject<HTMLElement | null>, enabled: bo
             item.x += (x - item.x) * ease;
             item.y += (y - item.y) * ease;
           }
-          writes.push(() => { pointer.dataset.tool = text ? "Text" : "Frame"; });
         }
         const visible = active && !item.relocating && item.y < window.innerHeight - 35;
         item.alpha += ((visible ? 0.9 : 0) - item.alpha) * (1 - Math.exp(-dt / 70));
@@ -158,5 +166,5 @@ export function useHeroEntrance(root: RefObject<HTMLElement | null>, enabled: bo
       document.removeEventListener("visibilitychange", onVisibility);
       finish();
     };
-  }, [root, enabled]);
+  }, [root, enabled, ready]);
 }

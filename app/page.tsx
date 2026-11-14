@@ -3,6 +3,9 @@
 import Image from "next/image";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, MouseEvent } from "react";
+import { MotionControl } from "./motion-control";
+import { readMotionMode, saveMotionMode, type MotionMode } from "./motion-preference";
+import { useSubtleMotion } from "./use-subtle-motion";
 import { useScrollBuild } from "./use-scroll-build";
 import { useHeroEntrance } from "./use-hero-entrance";
 import { AuthoredSection, WrittenText } from "./authored-section";
@@ -201,8 +204,10 @@ const skillRows = [
 ];
 
 export default function Home() {
-  const [motionEnabled, setMotionEnabled] = useState(true);
+  const [motionMode, setMotionMode] = useState<MotionMode>("subtle");
+  const motionEnabled = motionMode !== "off";
   const [motionPreferenceLoaded, setMotionPreferenceLoaded] = useState(false);
+  const [pastHero, setPastHero] = useState(false);
   const [activeFilter, setActiveFilter] = useState<(typeof filters)[number]>("All");
   const [activeProject, setActiveProject] = useState(projects[0]);
   const [activeSection, setActiveSection] = useState("home");
@@ -215,28 +220,29 @@ export default function Home() {
   const navItemsVisibleRef = useRef(false);
 
   useLayoutEffect(() => {
-    try {
-      const saved = window.localStorage.getItem("dlyn-motion-enabled");
-      // Apply the saved choice before the first paint or entrance animation.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      if (saved !== null) setMotionEnabled(saved === "true");
-    } catch {
-      // Keep the default preference when browser storage is unavailable.
-    }
+    // Read browser storage before starting an entrance or displaying its setting.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMotionMode(readMotionMode());
     setMotionPreferenceLoaded(true);
   }, []);
 
   useEffect(() => {
-    if (!motionPreferenceLoaded) return;
-    try {
-      window.localStorage.setItem("dlyn-motion-enabled", String(motionEnabled));
-    } catch {
-      // The toggle remains usable for this visit when storage is unavailable.
-    }
-  }, [motionEnabled, motionPreferenceLoaded]);
+    if (motionPreferenceLoaded) saveMotionMode(motionMode);
+  }, [motionMode, motionPreferenceLoaded]);
 
-  useHeroEntrance(heroSectionRef, motionEnabled && motionPreferenceLoaded);
-  useScrollBuild(shellRef, motionEnabled && motionPreferenceLoaded, `${activeFilter}:${activeProject.name}`);
+  useEffect(() => {
+    const hero = heroSectionRef.current;
+    if (!hero) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      setPastHero(!entry.isIntersecting && entry.boundingClientRect.bottom <= 0);
+    });
+    observer.observe(hero);
+    return () => observer.disconnect();
+  }, []);
+
+  useHeroEntrance(heroSectionRef, motionEnabled, motionPreferenceLoaded);
+  useScrollBuild(shellRef, motionMode === "showcase" && motionPreferenceLoaded, `${activeFilter}:${activeProject.name}`);
+  useSubtleMotion(shellRef, motionMode === "subtle" && motionPreferenceLoaded);
 
   const visibleProjects = useMemo(() => {
     if (activeFilter === "All") {
@@ -385,18 +391,9 @@ export default function Home() {
 
   return (
     <main className="portfolio-shell" ref={shellRef}>
-      <button
-        className={`motion-toggle ${motionPreferenceLoaded ? "" : "is-loading"}`}
-        type="button"
-        aria-label={motionPreferenceLoaded ? "Scroll animation" : "Loading motion preference"}
-        aria-pressed={motionEnabled}
-        aria-busy={!motionPreferenceLoaded}
-        disabled={!motionPreferenceLoaded}
-        onClick={() => setMotionEnabled((enabled) => !enabled)}
-      >
-        <span aria-hidden="true" />
-        {motionPreferenceLoaded ? `Motion ${motionEnabled ? "on" : "off"}` : "Loading"}
-      </button>
+      <div className={`compact-motion ${pastHero ? "is-visible" : ""}`}>
+        <MotionControl mode={motionMode} ready={motionPreferenceLoaded} onChange={setMotionMode} />
+      </div>
       <div className="design-cursors" aria-hidden="true" />
       <div className="grain" />
       <a
@@ -468,17 +465,43 @@ export default function Home() {
               <i aria-hidden="true" />
             </span>
           </div>
-          <div
-            className={`page-nav ${navItemsVisible ? "is-docked" : ""}`}
-            aria-label="Page navigation"
-          >
-            <span><WrittenText text="Index" /></span>
-            {navItems.map((item) => (
-              <a key={item.target} href={item.href} onClick={(event) => scrollToSection(event, item.target)}>
-                <WrittenText text={item.label} />
-              </a>
-            ))}
-          </div>
+          <aside className="hero-side">
+            <fieldset className="hero-motion-picker" disabled={!motionPreferenceLoaded}
+              aria-labelledby="hero-motion-title">
+              <h2 id="hero-motion-title" className="motion-picker-title">
+                <WrittenText text="Enjoyed watching this page come together? Try Showcase as you scroll." />
+              </h2>
+              <div className="motion-picker-options">
+                {(["subtle", "showcase", "off"] as const).map((mode) => (
+                  <label key={mode} data-motion={mode}>
+                    <input type="radio" name="hero-motion" value={mode}
+                      checked={motionPreferenceLoaded && motionMode === mode}
+                      onChange={() => setMotionMode(mode)} />
+                    <span className="motion-picker-option">
+                      <svg className="motion-picker-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        {mode === "off" ? <path d="M9 6v12M15 6v12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                          : mode === "subtle" ? <path d="M3 12c3-10 6 10 9 0s6 10 9 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                          : <><path d="m5 4 3.5 15 3.8-6 6.7-1L5 4Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /><path d="M18 3v3m-1.5-1.5h3M21 17v3m-1.5-1.5h3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" /></>}
+                      </svg>
+                      <WrittenText text={mode === "subtle" ? "Subtle" : mode === "showcase" ? "Showcase" : "Off"} />
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            <nav className="page-nav" aria-label="Page navigation">
+              <span><WrittenText text="Index" /></span>
+              {navItems.map((item, index) => (
+                <a key={item.target} href={item.href} onClick={(event) => scrollToSection(event, item.target)}>
+                  <span className="index-number" aria-hidden="true">0{index + 1}</span>
+                  <WrittenText text={item.label} />
+                  <svg className="index-arrow" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </a>
+              ))}
+            </nav>
+          </aside>
         </div>
 
       </section>

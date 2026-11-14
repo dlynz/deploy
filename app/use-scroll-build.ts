@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, type RefObject } from "react";
 
+import { getCursorName } from "./cursor-names";
+
 const targets = [
   ".section-heading", ".filter-row", ".project-card", ".project-detail",
   ".timeline > article", ".skill-grid > article", ".resume-header",
@@ -53,14 +55,16 @@ export function useScrollBuild(root: RefObject<HTMLElement | null>, enabled: boo
       const cursor = isDevSocEntry ? null : document.createElement("div");
       if (cursor) {
         cursor.className = "design-cursor";
-        cursor.dataset.tool = "Frame";
-        cursor.style.setProperty("--cursor-color", colors[index % colors.length]);
+        const color = colors[index % colors.length];
+        cursor.dataset.name = getCursorName(color);
+        cursor.style.setProperty("--cursor-color", color);
         cursor.innerHTML = '<svg width="18" height="23" viewBox="0 0 22 27" fill="none"><path d="M4.2 3.2C3.4 2.6 2.4 3.3 2.6 4.3L6.5 22.3C6.7 23.3 8 23.5 8.5 22.6L12 16.4L19 15.6C20 15.5 20.3 14.3 19.5 13.7L4.2 3.2Z" fill="currentColor" stroke="white" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" /></svg>';
         layer.appendChild(cursor);
       }
       return {
         element, texts, total, top: 0, height: 0,
-        progress: contentChanged && element.closest("#work") ? 1 : progressCache.current.get(element) ?? 0, painted: -1,
+        progress: (contentChanged && element.closest("#work")) || element.getBoundingClientRect().top < window.innerHeight
+          ? 1 : progressCache.current.get(element) ?? 0, painted: -1,
         cursor, x: 0, y: 0, opacity: 0, positioned: false, relocating: false,
       };
     });
@@ -139,8 +143,6 @@ export function useScrollBuild(root: RefObject<HTMLElement | null>, enabled: boo
             const rect = text.glyphs[text.count - 1].getBoundingClientRect();
             x = rect.right + 5;
             y = rect.bottom + scroll + 5;
-            const tool = progress > 0.87 ? "Style" : "Text";
-            if (pointer.dataset.tool !== tool) writes.push(() => { pointer.dataset.tool = tool; });
           } else {
             const rect = item.element.getBoundingClientRect();
             const path = clamp(progress / 0.25) * 4;
