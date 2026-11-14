@@ -33,6 +33,7 @@ export function useScrollBuild(root: RefObject<HTMLElement | null>, enabled: boo
     previousContentKey.current = contentKey;
     const layer = shell.querySelector<HTMLElement>(".design-cursors");
     if (!layer) return;
+    const header = document.querySelector<HTMLElement>(".site-nav");
     const progressBar = document.createElement("div");
     progressBar.className = "scroll-build-progress";
     layer.appendChild(progressBar);
@@ -75,6 +76,7 @@ export function useScrollBuild(root: RefObject<HTMLElement | null>, enabled: boo
     let lastTime = 0;
     let viewport = window.innerHeight;
     let pageHeight = 1;
+    let heroBottom = 0;
     let disposed = false;
 
     function update(time: number) {
@@ -84,11 +86,14 @@ export function useScrollBuild(root: RefObject<HTMLElement | null>, enabled: boo
       const pointerEase = 1 - Math.exp(-dt / 55);
       const fadeEase = 1 - Math.exp(-dt / 90);
       const scroll = window.scrollY;
+      const headerReveal = header
+        ? Number.parseFloat(getComputedStyle(header).getPropertyValue("--nav-reveal")) || 0
+        : 1;
       const end = clamp((scroll - pageHeight + viewport * 0.3) / (viewport * 0.3));
       // Collect geometry before applying any styles to avoid forcing layout
       // repeatedly as each independent cursor moves.
       const writes: Array<() => void> = [];
-      const pageProgress = clamp(scroll / pageHeight);
+      const pageProgress = clamp((scroll - heroBottom) / Math.max(1, pageHeight - heroBottom));
       if (pageProgress !== lastPageProgress) {
         writes.push(() => { progressBar.style.transform = `scaleX(${pageProgress})`; });
         lastPageProgress = pageProgress;
@@ -180,6 +185,7 @@ export function useScrollBuild(root: RefObject<HTMLElement | null>, enabled: boo
           pointer.style.transform = `translate3d(${item.x}px, ${item.y - scroll}px, 0)`;
         });
       });
+      progressBar.style.opacity = String(headerReveal);
       writes.forEach((write) => write());
       if (moving) frame = window.requestAnimationFrame(update);
       else lastTime = 0;
@@ -191,6 +197,8 @@ export function useScrollBuild(root: RefObject<HTMLElement | null>, enabled: boo
     function measure() {
       viewport = window.innerHeight;
       pageHeight = Math.max(1, document.documentElement.scrollHeight - viewport);
+      const hero = shell?.querySelector<HTMLElement>(".hero-section");
+      heroBottom = hero ? layoutTop(hero) + hero.offsetHeight : 0;
       items.forEach((item) => {
         item.top = layoutTop(item.element);
         item.height = item.element.offsetHeight;

@@ -10,10 +10,10 @@ const tracks = [
   { selector: "h1", delay: 100, duration: 2400, cursor: true },
   { selector: ".hero-copy", delay: 850, duration: 1700, cursor: true },
   { selector: ".hero-links", delay: 1200, duration: 1700, cursor: true },
-  { selector: ".motion-picker-options", delay: 1050, duration: 1800, cursor: true },
   { selector: ".page-nav > span", delay: 800, duration: 2000, cursor: true },
   { selector: ".page-nav > a", delay: 1000, duration: 1850, cursor: true },
   { selector: ".motion-picker-title", delay: 0, duration: 2400, cursor: true },
+  { selector: ".motion-picker-options > label", delay: 0, duration: 1000, cursor: true },
 ];
 
 export function useHeroEntrance(root: RefObject<HTMLElement | null>, enabled: boolean, ready = true) {
@@ -60,8 +60,13 @@ export function useHeroEntrance(root: RefObject<HTMLElement | null>, enabled: bo
     // Let the invitation finish the scene, after every other visible track.
     const invitation = items.find((item) => item.selector === ".motion-picker-title");
     if (invitation) {
-      invitation.delay = Math.max(...items.filter((item) => item !== invitation)
+      invitation.delay = Math.max(...items.filter((item) => item !== invitation &&
+        item.selector !== ".motion-picker-options > label")
         .map((item) => item.delay + item.duration)) + 180;
+      items.filter((item) => item.selector === ".motion-picker-options > label")
+        .forEach((item, index) => {
+          item.delay = invitation.delay + invitation.duration + 180 + index * 140;
+        });
     }
     const sceneDuration = Math.max(1400, ...items.map((item) => item.delay + item.duration)) + 100;
     const title = hero.querySelector<HTMLElement>("h1");

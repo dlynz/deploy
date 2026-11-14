@@ -1,70 +1,65 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, type KeyboardEvent, type PointerEvent } from "react";
 import type { MotionMode } from "./motion-preference";
 
-const modes: { value: MotionMode; label: string; description: string }[] = [
-  { value: "subtle", label: "Subtle", description: "Hero intro and soft section reveals" },
-  { value: "showcase", label: "Showcase", description: "Watch the whole page being created" },
-  { value: "off", label: "Off", description: "Show all content immediately" },
+const modes: { value: MotionMode; label: string }[] = [
+  { value: "subtle", label: "Subtle" },
+  { value: "showcase", label: "Showcase" },
+  { value: "off", label: "Off" },
 ];
 
 export function MotionControl({ mode, ready, onChange }: {
   mode: MotionMode; ready: boolean; onChange: (mode: MotionMode) => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const root = useRef<HTMLDivElement>(null);
-  const trigger = useRef<HTMLButtonElement>(null);
-  const menu = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    menu.current?.querySelector<HTMLButtonElement>('[aria-checked="true"]')?.focus();
-    function outside(event: PointerEvent) {
-      if (event.target instanceof Node && !root.current?.contains(event.target)) setOpen(false);
-    }
-    document.addEventListener("pointerdown", outside);
-    return () => document.removeEventListener("pointerdown", outside);
-  }, [open]);
-
-  function close() { setOpen(false); trigger.current?.focus(); }
+  const index = modes.findIndex((entry) => entry.value === mode);
+  const dragging = useRef(false);
+  function selectAt(event: PointerEvent<HTMLDivElement>) {
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const position = Math.max(0, Math.min(2, Math.floor(((event.clientX - bounds.left) / bounds.width) * 3)));
+    onChange(modes[position].value);
+  }
+  function startDrag(event: PointerEvent<HTMLDivElement>) {
+    if (!ready || event.button !== 0) return;
+    dragging.current = true;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    selectAt(event);
+  }
+  function moveDrag(event: PointerEvent<HTMLDivElement>) {
+    if (dragging.current) selectAt(event);
+  }
+  function endDrag(event: PointerEvent<HTMLDivElement>) {
+    dragging.current = false;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+  }
+  function onKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
+    let next = index;
+    if (event.key === "ArrowRight" || event.key === "ArrowDown") next = Math.min(index + 1, modes.length - 1);
+    else if (event.key === "ArrowLeft" || event.key === "ArrowUp") next = Math.max(index - 1, 0);
+    else if (event.key === "Home") next = 0;
+    else if (event.key === "End") next = modes.length - 1;
+    else return;
+    event.preventDefault();
+    onChange(modes[next].value);
+    event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>("button")[next]?.focus();
+  }
 
   return (
-    <div className="motion-control" ref={root} onBlur={(event) => {
-      if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
-    }}>
-      <button className={`motion-toggle ${ready ? "" : "is-loading"}`} ref={trigger}
-        type="button" disabled={!ready} aria-busy={!ready}
-        aria-label={ready ? `Motion: ${mode}` : "Loading motion preference"}
-        aria-haspopup="menu" aria-expanded={open} aria-controls="motion-options"
-        data-mode={mode} onClick={() => setOpen((value) => !value)}
-        onKeyDown={(event) => {
-          if (event.key === "ArrowDown" || event.key === "ArrowUp") { event.preventDefault(); setOpen(true); }
-        }}>
-        <span aria-hidden="true" />
-        {ready ? `Motion: ${modes.find((entry) => entry.value === mode)?.label}` : "Loading"}
-      </button>
-      {open && <div className="motion-menu" id="motion-options" role="menu" aria-label="Motion mode" ref={menu}
-        onKeyDown={(event) => {
-          if (event.key === "Escape") { event.preventDefault(); close(); return; }
-          if (event.key === "Tab") { close(); return; }
-          const buttons = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>("button"));
-          const index = buttons.indexOf(document.activeElement as HTMLButtonElement);
-          let next: number;
-          if (event.key === "ArrowDown") next = (index + 1) % buttons.length;
-          else if (event.key === "ArrowUp") next = (index - 1 + buttons.length) % buttons.length;
-          else if (event.key === "Home") next = 0;
-          else if (event.key === "End") next = buttons.length - 1;
-          else return;
-          event.preventDefault(); buttons[next]?.focus();
-        }}>
-        {modes.map((entry) => <button key={entry.value} type="button" role="menuitemradio"
-          aria-checked={mode === entry.value} tabIndex={mode === entry.value ? 0 : -1}
-          onClick={() => { onChange(entry.value); close(); }}>
-          <strong>{entry.label}<span aria-hidden="true">{mode === entry.value ? "✓" : ""}</span></strong>
-          <small>{entry.description}</small>
+    <div className="motion-control">
+      <div className={`motion-slider ${ready ? "" : "is-loading"}`} role="radiogroup"
+        aria-label="Motion setting" aria-busy={!ready} data-index={Math.max(index, 0)}
+        onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={endDrag} onPointerCancel={endDrag}>
+        <span className="motion-slider-thumb" aria-hidden="true" />
+        {modes.map((entry) => <button key={entry.value} type="button" role="radio"
+          disabled={!ready} aria-checked={mode === entry.value} tabIndex={mode === entry.value ? 0 : -1}
+          aria-label={`Motion: ${entry.label}`} onClick={() => onChange(entry.value)} onKeyDown={onKeyDown}>
+          <svg className="motion-slider-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            {entry.value === "off" ? <path d="M9 6v12M15 6v12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              : entry.value === "subtle" ? <path d="M3 12c3-10 6 10 9 0s6 10 9 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+              : <><path d="m5 4 3.5 15 3.8-6 6.7-1L5 4Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /><path d="M18 3v3m-1.5-1.5h3M21 17v3m-1.5-1.5h3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" /></>}
+          </svg>
         </button>)}
-      </div>}
+      </div>
     </div>
   );
 }

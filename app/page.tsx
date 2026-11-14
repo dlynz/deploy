@@ -91,7 +91,7 @@ const timeline = [
 const skillClusters = [
   {
     name: "Interfaces",
-    skills: ["React", "Next.js", "TypeScript", "TailwindCSS", "Material UI", "dnd-kit"],
+    skills: ["React", "Next.js", "TypeScript", "TailwindCSS", "Material UI", "Vite"],
   },
   {
     name: "Systems",
@@ -259,7 +259,7 @@ export default function Home() {
     setActiveProject(nextProjects[0] ?? projects[0]);
   }
 
-  function scrollToTarget(target: string) {
+  function scrollToTarget(target: string, updateUrl = true) {
     const element = target === "home" ? document.body : document.getElementById(target);
     const nextTop =
       target === "home" ? 0 : (element?.getBoundingClientRect().top ?? 0) + window.scrollY;
@@ -270,13 +270,15 @@ export default function Home() {
       behavior: motionEnabled ? "smooth" : "instant",
     });
 
-    window.history.replaceState(null, "", target === "home" ? window.location.pathname : `#${target}`);
+    if (updateUrl) {
+      window.history.replaceState(null, "", target === "home" ? window.location.pathname : `#${target}`);
+    }
     setActiveSection(target);
   }
 
-  function scrollToSection(event: MouseEvent<HTMLAnchorElement>, target: string) {
+  function scrollToSection(event: MouseEvent<HTMLAnchorElement>, target: string, updateUrl = true) {
     event.preventDefault();
-    scrollToTarget(target);
+    scrollToTarget(target, updateUrl);
   }
 
   useEffect(() => {
@@ -426,7 +428,7 @@ export default function Home() {
                 key={item.target}
                 href={item.href}
                 aria-current={activeSection === item.target ? "page" : undefined}
-                onClick={(event) => scrollToSection(event, item.target)}
+                onClick={(event) => scrollToSection(event, item.target, false)}
               >
                 <WrittenText text={item.label} />
               </a>
@@ -469,7 +471,7 @@ export default function Home() {
             <fieldset className="hero-motion-picker" disabled={!motionPreferenceLoaded}
               aria-labelledby="hero-motion-title">
               <h2 id="hero-motion-title" className="motion-picker-title">
-                <WrittenText text="Enjoyed watching this page come together? Try Showcase as you scroll." />
+                <WrittenText text="Enjoyed watching this section come to life? Try Showcase as you scroll c:" />
               </h2>
               <div className="motion-picker-options">
                 {(["subtle", "showcase", "off"] as const).map((mode) => (
@@ -492,7 +494,7 @@ export default function Home() {
             <nav className="page-nav" aria-label="Page navigation">
               <span><WrittenText text="Index" /></span>
               {navItems.map((item, index) => (
-                <a key={item.target} href={item.href} onClick={(event) => scrollToSection(event, item.target)}>
+                <a key={item.target} href={item.href} onClick={(event) => scrollToSection(event, item.target, false)}>
                   <span className="index-number" aria-hidden="true">0{index + 1}</span>
                   <WrittenText text={item.label} />
                   <svg className="index-arrow" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -564,7 +566,7 @@ export default function Home() {
             </div>
             {activeProject.link ? (
               <a href={activeProject.link} target="_blank" rel="noreferrer">
-                Open project
+                Visit website
               </a>
             ) : null}
           </article>
@@ -687,7 +689,11 @@ export default function Home() {
                     <h4>
                       {item.title} <span>{item.subtitle}</span>
                     </h4>
-                    <p>{item.link}</p>
+                    <a className="resume-project-link"
+                      href={item.link.startsWith("http") ? item.link : `https://${item.link}`}
+                      target="_blank" rel="noreferrer">
+                      {item.link} ↗
+                    </a>
                   </div>
                   <div>
                     <span>{item.date}</span>
