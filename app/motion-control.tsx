@@ -33,6 +33,7 @@ export function MotionControl({ mode, ready, onChange }: {
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
   }
   function onKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
+    if (!ready) return;
     let next = index;
     if (event.key === "ArrowRight" || event.key === "ArrowDown") next = Math.min(index + 1, modes.length - 1);
     else if (event.key === "ArrowLeft" || event.key === "ArrowUp") next = Math.max(index - 1, 0);
@@ -51,8 +52,8 @@ export function MotionControl({ mode, ready, onChange }: {
         onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={endDrag} onPointerCancel={endDrag}>
         <span className="motion-slider-thumb" aria-hidden="true" />
         {modes.map((entry) => <button key={entry.value} type="button" role="radio"
-          disabled={!ready} aria-checked={mode === entry.value} tabIndex={mode === entry.value ? 0 : -1}
-          aria-label={`Motion: ${entry.label}`} onClick={() => onChange(entry.value)} onKeyDown={onKeyDown}>
+          aria-checked={mode === entry.value} tabIndex={ready && mode === entry.value ? 0 : -1}
+          aria-label={`Motion: ${entry.label}`} onClick={() => { if (ready) onChange(entry.value); }} onKeyDown={onKeyDown}>
           <svg className="motion-slider-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             {entry.value === "off" ? <path d="M9 6v12M15 6v12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
               : entry.value === "subtle" ? <path d="M3 12c3-10 6 10 9 0s6 10 9 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
