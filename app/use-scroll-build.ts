@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, type RefObject } from "react";
 
-import { getCursorName } from "./cursor-names";
+import { getCursorColor, getCursorName, getCursorSpeed } from "./cursor-names";
 
 const targets = [
   ".section-heading", ".filter-row", ".project-card", ".project-detail",
@@ -10,7 +10,6 @@ const targets = [
   ".resume-block > h3", ".resume-item", ".resume-skills > p",
 ].join(", ");
 const clamp = (value: number) => Math.min(1, Math.max(0, value));
-const colors = ["var(--violet)", "var(--cyan)", "var(--mint)"];
 
 function layoutTop(element: HTMLElement) {
   let top = 0;
@@ -52,20 +51,24 @@ export function useScrollBuild(root: RefObject<HTMLElement | null>, enabled: boo
       // This empty layer is owned by the effect, separate from React's content.
       const isDevSocEntry = element.matches(".resume-skills > p") &&
         element.querySelector(".written-accessible")?.textContent?.includes("DevSoc");
+      let speed = 1;
       const cursor = isDevSocEntry ? null : document.createElement("div");
       if (cursor) {
         cursor.className = "design-cursor";
-        const color = colors[index % colors.length];
+        // The hero uses the first nine slots; continue the shuffled palette.
+        const color = getCursorColor(index + 9);
+        speed = getCursorSpeed(color);
         cursor.dataset.name = getCursorName(color);
         cursor.style.setProperty("--cursor-color", color);
-        cursor.innerHTML = '<svg width="18" height="23" viewBox="0 0 22 27" fill="none"><path d="M4.2 3.2C3.4 2.6 2.4 3.3 2.6 4.3L6.5 22.3C6.7 23.3 8 23.5 8.5 22.6L12 16.4L19 15.6C20 15.5 20.3 14.3 19.5 13.7L4.2 3.2Z" fill="currentColor" stroke="white" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" /></svg>';
+        element.style.setProperty("--build-accent", color);
+        cursor.innerHTML = '<svg width="18" height="23" viewBox="0 0 22 27" fill="none"><path d="M4.2 3.2C3.4 2.6 2.4 3.3 2.6 4.3L6.5 22.3C6.7 23.3 8 23.5 8.5 22.6L12 16.4L19 15.6C20 15.5 20.3 14.3 19.5 13.7L4.2 3.2Z" fill="currentColor" stroke="white" stroke-width="1.5" stroke-linejoin="round" /></svg>';
         layer.appendChild(cursor);
       }
       return {
         element, texts, total, top: 0, height: 0,
         progress: (contentChanged && element.closest("#work")) || element.getBoundingClientRect().top < window.innerHeight
           ? 1 : progressCache.current.get(element) ?? 0, painted: -1,
-        cursor, x: 0, y: 0, opacity: 0, positioned: false, relocating: false,
+        cursor, speed, x: 0, y: 0, opacity: 0, positioned: false, relocating: false,
       };
     });
     let frame = 0;
@@ -78,7 +81,6 @@ export function useScrollBuild(root: RefObject<HTMLElement | null>, enabled: boo
       frame = 0;
       const dt = Math.min(48, lastTime ? time - lastTime : 16);
       lastTime = time;
-      const progressEase = 1 - Math.exp(-dt / 140);
       const pointerEase = 1 - Math.exp(-dt / 55);
       const fadeEase = 1 - Math.exp(-dt / 90);
       const scroll = window.scrollY;
@@ -94,14 +96,15 @@ export function useScrollBuild(root: RefObject<HTMLElement | null>, enabled: boo
       let moving = false;
 
       items.forEach((item) => {
-        const raw = Math.max(end, clamp((viewport * 0.94 - (item.top - scroll)) / (viewport * 0.57)));
+        const progressEase = 1 - Math.exp(-dt * item.speed / 140);
+        const raw = Math.max(end, clamp((viewport * 0.94 - (item.top - scroll)) / (viewport * 0.57 / item.speed)));
         const target = Math.max(item.progress, raw);
         // Focus and skipped content must be immediately readable. Visible work
         // catches up over several frames, including after the scroll stops.
         const immediate = item.element.contains(document.activeElement) || item.top + item.height < scroll;
         const remaining = target - item.progress;
         let progress = immediate ? 1 : remaining < 0.0002 ? target
-          : item.progress + Math.min(remaining * progressEase, dt / 1400);
+          : item.progress + Math.min(remaining * progressEase, dt * item.speed / 1400);
         if (!immediate && target - progress < 0.0002) progress = target;
         if (target - progress > 0.0002) moving = true;
         item.progress = progress;
@@ -215,7 +218,7 @@ export function useScrollBuild(root: RefObject<HTMLElement | null>, enabled: boo
       items.forEach(({ element, texts, cursor }) => {
         cursor?.remove();
         delete element.dataset.build;
-        ["--draw-top", "--draw-right", "--draw-bottom", "--draw-left", "--finish"].forEach((property) => element.style.removeProperty(property));
+        ["--draw-top", "--draw-right", "--draw-bottom", "--draw-left", "--finish", "--build-accent"].forEach((property) => element.style.removeProperty(property));
         texts.forEach(({ element }) => {
           element.style.removeProperty("--typed");
           element.removeAttribute("data-writing");

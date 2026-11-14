@@ -947,6 +947,7 @@ h1 {
   [data-build] {
     position: relative;
     --finish: 1;
+    --build-outline: rgba(220, 220, 228, 0.42);
   }
 
   [data-build]:not([data-build="complete"]) {
@@ -967,10 +968,10 @@ h1 {
     pointer-events: none;
     opacity: calc(1 - var(--finish));
     background:
-      linear-gradient(var(--violet), var(--violet)) left top / calc(var(--draw-top) * 100%) 1px no-repeat,
-      linear-gradient(var(--violet), var(--violet)) right top / 1px calc(var(--draw-right) * 100%) no-repeat,
-      linear-gradient(var(--violet), var(--violet)) right bottom / calc(var(--draw-bottom) * 100%) 1px no-repeat,
-      linear-gradient(var(--violet), var(--violet)) left bottom / 1px calc(var(--draw-left) * 100%) no-repeat;
+      linear-gradient(var(--build-outline), var(--build-outline)) left top / calc(var(--draw-top) * 100%) 1px no-repeat,
+      linear-gradient(var(--build-outline), var(--build-outline)) right top / 1px calc(var(--draw-right) * 100%) no-repeat,
+      linear-gradient(var(--build-outline), var(--build-outline)) right bottom / calc(var(--draw-bottom) * 100%) 1px no-repeat,
+      linear-gradient(var(--build-outline), var(--build-outline)) left bottom / 1px calc(var(--draw-left) * 100%) no-repeat;
   }
 
   [data-build="drawing"]::after {
@@ -981,10 +982,10 @@ h1 {
     pointer-events: none;
     opacity: calc(var(--draw-left) * (1 - var(--finish)));
     background:
-      linear-gradient(var(--violet), var(--violet)) left top / 6px 6px no-repeat,
-      linear-gradient(var(--violet), var(--violet)) right top / 6px 6px no-repeat,
-      linear-gradient(var(--violet), var(--violet)) left bottom / 6px 6px no-repeat,
-      linear-gradient(var(--violet), var(--violet)) right bottom / 6px 6px no-repeat;
+      linear-gradient(var(--build-outline), var(--build-outline)) left top / 6px 6px no-repeat,
+      linear-gradient(var(--build-accent, var(--build-outline)), var(--build-accent, var(--build-outline))) right top / 6px 6px no-repeat,
+      linear-gradient(var(--build-outline), var(--build-outline)) left bottom / 6px 6px no-repeat,
+      linear-gradient(var(--build-outline), var(--build-outline)) right bottom / 6px 6px no-repeat;
   }
 
   [data-build] .written-letter {
@@ -998,7 +999,7 @@ h1 {
     top: 0;
     bottom: 0;
     width: 2px;
-    background: var(--cyan);
+    background: var(--build-accent, var(--cyan));
     opacity: clamp(0, calc(1 - max(var(--typed) - var(--letter) - 1, var(--letter) + 1 - var(--typed))), 1);
   }
 
